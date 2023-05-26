@@ -92,7 +92,8 @@
 							"    // now check that we have the board that was created...\r",
 							"    const theCreatedBoard = findObjectByKey(pm.response.json(), \"id\", pm.environment.get(\"aBoardId\"));\r",
 							"    pm.expect(theCreatedBoard).to.be.an(\"object\");\r",
-							"});"
+							"});\r",
+							""
 						],
 						"type": "text/javascript"
 					}
@@ -212,7 +213,24 @@
 							"    .random() * (maxm - minm + 1)) + minm;\r",
 							"}\r",
 							"\r",
-							"pm.environment.set(\"aListName\", `List ${randomNumber(6)}`);"
+							"const setTheListNames = () => {\r",
+							"    \r",
+							"    let theListNames;\r",
+							"    const aListName = `List ${randomNumber(6)}`;\r",
+							"    if(pm.environment.has(\"theListNames\")){\r",
+							"        theListNames = JSON.parse(pm.environment.get(\"theListNames\"));\r",
+							"        theListNames.push(aListName);\r",
+							"\r",
+							"    } else {\r",
+							"        theListNames = [aListName];\r",
+							"    }\r",
+							"    pm.environment.set(\"theListNames\", JSON.stringify(theListNames));\r",
+							"    pm.environment.set(\"aListName\", aListName);\r",
+							"}\r",
+							"\r",
+							"setTheListNames();\r",
+							"\r",
+							""
 						],
 						"type": "text/javascript"
 					}
@@ -227,14 +245,33 @@
 							"    pm.response.to.have.status(200);\r",
 							"});\r",
 							"\r",
+							"\r",
+							"//we want to create two lists, so check the number already in the environment and call\r",
+							"// again if only one.\r",
+							"if(!pm.environment.has(\"theListIds\") ){\r",
+							"    console.log(\"we should be here.\");\r",
+							"    postman.setNextRequest(\"Create a List\");\r",
+							"}\r",
+							"\r",
+							"const setTheListsIds = (id) => {\r",
+							"    let theListIds;\r",
+							"    if(pm.environment.has(\"theListIds\")){\r",
+							"        theListIds = JSON.parse(pm.environment.get(\"theListIds\"));\r",
+							"        theListIds.push(id);\r",
+							"    } else {\r",
+							"        theListIds = [id];\r",
+							"    }\r",
+							"    pm.environment.set(\"theListIds\", JSON.stringify(theListIds));\r",
+							"}\r",
+							"\r",
 							"pm.test(\"Confirm list content expected\", () => {\r",
 							"    pm.expect(jsonData).to.be.an(\"object\");\r",
 							"    pm.expect(jsonData).haveOwnProperty(\"id\");\r",
 							"    pm.expect(jsonData).haveOwnProperty(\"name\");\r",
-							"    pm.expect(jsonData.name).to.be.eql(pm.environment.get(\"aListName\"));\r",
 							"    pm.expect(jsonData.idBoard).to.be.eql(pm.environment.get(\"aBoardId\"));\r",
-							"    pm.environment.set(\"aListId\", jsonData.id);\r",
-							"})"
+							"});\r",
+							"\r",
+							"setTheListsIds(jsonData.id);"
 						],
 						"type": "text/javascript"
 					}
@@ -275,87 +312,6 @@
 			"response": []
 		},
 		{
-			"name": "Create another List",
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"const randomNumber = (size) => {\r",
-							"    let minm = [\"1\"];\r",
-							"    for(let index = 0; index < size - 1; index++) {\r",
-							"        minm.push(\"0\");\r",
-							"    }\r",
-							"    minm = parseInt(minm.join(\"\"));\r",
-							"\r",
-							"    let maxm = [\"9\"]\r",
-							"    for(let index = 0; index < size - 1; index++) {\r",
-							"        maxm.push(\"9\");\r",
-							"    }\r",
-							"    maxm = parseInt(maxm.join(\"\"));\r",
-							"    return Math.floor(Math\r",
-							"    .random() * (maxm - minm + 1)) + minm;\r",
-							"}\r",
-							"\r",
-							"pm.environment.set(\"aSecondListName\", `List2 ${randomNumber(6)}`);"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Created List successfully\", ()=>{\r",
-							"    pm.response.to.have.status(200);\r",
-							"    pm.expect(pm.response.json()).to.be.an(\"object\");\r",
-							"    pm.expect(pm.response.json()).haveOwnProperty(\"id\");\r",
-							"    pm.expect(pm.response.json()).haveOwnProperty(\"name\");\r",
-							"    pm.expect(pm.response.json().name).to.be.eql(pm.environment.get(\"aSecondListName\"));\r",
-							"    pm.environment.set(\"aSecondListId\", pm.response.json().id);\r",
-							"});\r",
-							"\r",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"url": {
-					"raw": "{{baseUrl}}/1/lists?key={{trelloKey}}&token={{trelloToken}}&idBoard={{aBoardId}}&name={{aSecondListName}}",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"1",
-						"lists"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{trelloKey}}"
-						},
-						{
-							"key": "token",
-							"value": "{{trelloToken}}"
-						},
-						{
-							"key": "idBoard",
-							"value": "{{aBoardId}}"
-						},
-						{
-							"key": "name",
-							"value": "{{aSecondListName}}"
-						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Get a Board Lists",
 			"event": [
 				{
@@ -369,13 +325,14 @@
 							"    const theJson = pm.response.json();\r",
 							"    pm.expect(theJson).to.be.an(\"array\");\r",
 							"    // now check that we have the list that was created...\r",
-							"    const theCreatedFirstList = findObjectByKey(theJson, \"id\", pm.environment.get(\"aListId\"));\r",
-							"    pm.expect(theCreatedFirstList).to.be.an(\"object\");\r",
-							"    pm.expect(theCreatedFirstList.name).to.be.eql(pm.environment.get(\"aListName\"));\r",
-							"    \r",
-							"    const theCreatedSecondList = findObjectByKey(theJson, \"id\", pm.environment.get(\"aSecondListId\"));\r",
-							"    pm.expect(theCreatedFirstList).to.be.an(\"object\");\r",
-							"    pm.expect(theCreatedSecondList.name).to.be.eql(pm.environment.get(\"aSecondListName\"));\r",
+							"    const theListIds = JSON.parse(pm.environment.get(\"theListIds\"));\r",
+							"    const theListNames = JSON.parse(pm.environment.get(\"theListNames\"));\r",
+							"\r",
+							"    theListIds.forEach((id, theIndex) => {\r",
+							"        const listObj = findObjectByKey(theJson, \"id\", id);\r",
+							"        pm.expect(listObj).to.be.an(\"object\");\r",
+							"        pm.expect(listObj.name).to.be.eql(theListNames[theIndex]);\r",
+							"    });\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -439,7 +396,8 @@
 							"    .random() * (maxm - minm + 1)) + minm;\r",
 							"}\r",
 							"\r",
-							"pm.environment.set(\"aCardName\", `A Card ${randomNumber(4)}`);"
+							"pm.environment.set(\"aCardName\", `A Card ${randomNumber(4)}`);\r",
+							"pm.environment.set(\"aListId\", JSON.parse(pm.environment.get(\"theListIds\"))[0]);"
 						],
 						"type": "text/javascript"
 					}
@@ -644,6 +602,15 @@
 						],
 						"type": "text/javascript"
 					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.environment.set(\"aSecondListId\", JSON.parse(pm.environment.get(\"theListIds\"))[1]);"
+						],
+						"type": "text/javascript"
+					}
 				}
 			],
 			"request": {
@@ -743,12 +710,16 @@
 							"    pm.environment.unset(\"boardNumber\");\r",
 							"    pm.environment.unset(\"aBoardName\");\r",
 							"    pm.environment.unset(\"aBoardId\");\r",
+							"    pm.environment.unset(\"theListNames\");\r",
+							"    pm.environment.unset(\"theListIds\");\r",
 							"    pm.environment.unset(\"aListName\");\r",
 							"    pm.environment.unset(\"aListId\");\r",
-							"    pm.environment.unset(\"aSecondListName\");\r",
 							"    pm.environment.unset(\"aSecondListId\");\r",
 							"    pm.environment.unset(\"aCardName\");\r",
 							"    pm.environment.unset(\"aCardId\");\r",
+							"    if(console.clear) {\r",
+							"        console.clear();\r",
+							"    }\r",
 							"}\r",
 							"\r",
 							"pm.test(\"Deleted a board successfully\", ()=>{\r",
@@ -823,6 +794,10 @@
 					"// }",
 					"",
 					"// console.clear();",
+					"",
+					"if(console.clear) {",
+					"    console.clear();",
+					"}",
 					""
 				]
 			}
